@@ -1,0 +1,38 @@
+# --- FRONTEND (Node / Vite / React) ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# --- BACKEND (Python / FastAPI / YOLOv8) ---
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- SECRETOS Y BASE DE DATOS ---
+.env
+*.sql
+importar.py
+
+# --- ARCHIVOS SUBIDOS EN PRUEBAS ---
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# --- LOGS Y EDITORES ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
