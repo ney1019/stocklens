@@ -1,9 +1,10 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 const api = axios.create({
-  
-  baseURL: "http://127.0.0.1:8000",
-  timeout: 30000,
+  baseURL: API_URL,
+  timeout: 60000,
 });
 
 // Interceptor para agregar headers o manejo global si se requiere
