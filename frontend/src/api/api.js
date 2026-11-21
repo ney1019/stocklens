@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const api = axios.create({
   
-  baseURL: "http://127.0.0.1:8000",
-  timeout: 30000,
+  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+  timeout: 45000,
 });
 
 // Interceptor para agregar headers o manejo global si se requiere
@@ -35,13 +35,23 @@ export const createUsuario = async (userData) => {
   return data;
 };
 
+export const updateUsuario = async (id, userData) => {
+  const { data } = await api.put(`/api/usuarios/${id}`, userData);
+  return data;
+};
+
 export const updateUsuarioRol = async (id, rolData) => {
   const { data } = await api.patch(`/api/usuarios/${id}/rol`, rolData);
   return data;
 };
 
+export const deleteUsuario = async (id) => {
+  const { data } = await api.delete(`/api/usuarios/${id}`);
+  return data;
+};
+
 // ==============================================================================
-// CATEGORÍAS Y PRODUCTOS
+// CATEGORÍAS Y PRODUCTOS (EN PAQUETES)
 // ==============================================================================
 
 export const getCategorias = async () => {
@@ -64,12 +74,17 @@ export const updateProducto = async (id, productoData) => {
   return data;
 };
 
+export const deleteProducto = async (id) => {
+  const { data } = await api.delete(`/api/productos/${id}`);
+  return data;
+};
+
 // ==============================================================================
-// VISIÓN ARTIFICIAL (YOLO) Y VALIDACIÓN HITL
+// ESCANEO VOLUMÉTRICO Y VALIDACIÓN OPERATIVA DE INGRESO
 // ==============================================================================
 
 export const escanearImagen = async (formData) => {
-  const { data } = await api.post('/api/scan', formData, {
+  const { data } = await api.post('/api/escanear', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -78,12 +93,35 @@ export const escanearImagen = async (formData) => {
 };
 
 export const confirmarEscaneo = async (escaneoId, items) => {
-  const { data } = await api.post(`/api/scan/${escaneoId}/confirmar`, { items });
+  const { data } = await api.post(`/api/escanear/${escaneoId}/confirmar`, { items });
   return data;
 };
 
 export const cancelarEscaneo = async (escaneoId) => {
-  const { data } = await api.post(`/api/scan/${escaneoId}/cancelar`);
+  const { data } = await api.post(`/api/escanear/${escaneoId}/cancelar`);
+  return data;
+};
+
+// ==============================================================================
+// SALIDAS / DESPACHOS POR BOLETA O FACTURA PDF
+// ==============================================================================
+
+export const procesarPdfSalida = async (formData) => {
+  const { data } = await api.post('/api/salidas/procesar-pdf', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data;
+};
+
+export const confirmarSalida = async (salidaData) => {
+  const { data } = await api.post('/api/salidas/confirmar', salidaData);
+  return data;
+};
+
+export const getSalidas = async () => {
+  const { data } = await api.get('/api/salidas');
   return data;
 };
 

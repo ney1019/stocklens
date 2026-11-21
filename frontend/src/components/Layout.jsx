@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ScanLine,
   Boxes,
+  Truck,
   ClipboardList,
   Users,
   LogOut,
@@ -32,10 +33,15 @@ export const Layout = () => {
     },
     {
       to: '/escaner',
-      label: 'Escaneo IA',
+      label: 'Recepción Pallets',
       icon: ScanLine,
       adminOnly: false,
-      badge: 'YOLOv8',
+    },
+    {
+      to: '/salidas',
+      label: 'Salidas / Despachos',
+      icon: Truck,
+      adminOnly: false,
     },
     {
       to: '/inventario',
@@ -74,7 +80,7 @@ export const Layout = () => {
             <h1 className="font-bold text-base text-[#0F172A] leading-tight tracking-tight flex items-center gap-1.5">
               StockLens
               <span className="text-[10px] uppercase font-mono font-bold bg-[#0284C7]/10 text-[#0284C7] px-1.5 py-0.5 rounded">
-                v2.0
+                Almacén
               </span>
             </h1>
             <p className="text-[11px] text-[#64748B] font-medium flex items-center gap-1 truncate">
@@ -153,7 +159,7 @@ export const Layout = () => {
                   }`}
                 />
                 <span className="text-[11px] font-medium text-[#64748B] truncate">
-                  {user?.rol_nombre || 'Operador'}
+                  {user?.rol_nombre || 'Almacenero'}
                 </span>
               </div>
             </div>

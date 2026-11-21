@@ -4,19 +4,20 @@ import {
   Search,
   Plus,
   Edit2,
-  AlertTriangle,
+  Trash2,
   CheckCircle2,
   XCircle,
   RefreshCw,
   Tag,
   Layers,
-  Filter,
+  AlertCircle,
 } from 'lucide-react';
 import {
   getProductos,
   getCategorias,
   createProducto,
   updateProducto,
+  deleteProducto,
 } from '../api/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,13 +30,14 @@ export const InventoryPage = () => {
   const [busqueda, setBusqueda] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exito, setExito] = useState(null);
 
   // Estados de Modales
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [modalEditarAbierto, setModalEditarAbierto] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
 
-  // Formulario Crear / Editar
+  // Formulario Crear / Editar (100% en paquetes)
   const [formData, setFormData] = useState({
     categoria_id: '',
     nombre: '',
@@ -76,7 +78,7 @@ export const InventoryPage = () => {
       nombre: '',
       sku: '',
       stock_actual: 0,
-      unidades_por_paquete: 12,
+      unidades_por_paquete: 1,
       etiqueta_yolo: '',
     });
     setErrorModal(null);
@@ -90,9 +92,9 @@ export const InventoryPage = () => {
       categoria_id: prod.categoria_id,
       nombre: prod.nombre,
       sku: prod.sku || '',
-      stock_actual: prod.stock_actual,
-      unidades_por_paquete: prod.unidades_por_paquete,
-      etiqueta_yolo: prod.etiqueta_yolo,
+      stock_actual: prod.stock_actual ?? 0,
+      unidades_por_paquete: prod.unidades_por_paquete || 1,
+      etiqueta_yolo: prod.etiqueta_yolo || '',
     });
     setErrorModal(null);
     setModalEditarAbierto(true);
@@ -109,10 +111,12 @@ export const InventoryPage = () => {
         nombre: formData.nombre.trim(),
         sku: formData.sku.trim() || undefined,
         stock_actual: parseInt(formData.stock_actual, 10) || 0,
-        unidades_por_paquete: parseInt(formData.unidades_por_paquete, 10) || 1,
+        unidades_por_paquete: 1,
         etiqueta_yolo: formData.etiqueta_yolo.trim(),
       });
       setModalCrearAbierto(false);
+      setExito('Producto registrado correctamente en paquetes.');
+      setTimeout(() => setExito(null), 4000);
       cargarDatos();
     } catch (err) {
       setErrorModal(err.message || 'Error al crear producto.');
@@ -133,15 +137,39 @@ export const InventoryPage = () => {
         nombre: formData.nombre.trim(),
         sku: formData.sku.trim() || undefined,
         stock_actual: parseInt(formData.stock_actual, 10),
-        unidades_por_paquete: parseInt(formData.unidades_por_paquete, 10),
+        unidades_por_paquete: 1,
         etiqueta_yolo: formData.etiqueta_yolo.trim(),
       });
       setModalEditarAbierto(false);
+      setExito('Producto actualizado correctamente.');
+      setTimeout(() => setExito(null), 4000);
       cargarDatos();
     } catch (err) {
       setErrorModal(err.message || 'Error al actualizar producto.');
     } finally {
       setGuardando(false);
+    }
+  };
+
+  // Eliminar producto
+  const handleEliminarProducto = async (prod) => {
+    if (
+      !window.confirm(
+        `¿Está seguro de eliminar el producto "${prod.nombre}"? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setError(null);
+      await deleteProducto(prod.id);
+      setExito(`Producto "${prod.nombre}" eliminado correctamente.`);
+      setTimeout(() => setExito(null), 4000);
+      cargarDatos();
+    } catch (err) {
+      setError(err.message || 'Error al eliminar el producto.');
+      setTimeout(() => setError(null), 6000);
     }
   };
 
@@ -154,7 +182,7 @@ export const InventoryPage = () => {
       !busq ||
       p.nombre.toLowerCase().includes(busq) ||
       (p.sku && p.sku.toLowerCase().includes(busq)) ||
-      p.etiqueta_yolo.toLowerCase().includes(busq);
+      (p.etiqueta_yolo && p.etiqueta_yolo.toLowerCase().includes(busq));
     return matchCat && matchText;
   });
 
@@ -165,13 +193,13 @@ export const InventoryPage = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-[#1E40AF] uppercase tracking-wider mb-1">
             <Boxes className="w-4 h-4 text-[#0284C7]" />
-            Catálogo Central • Embotelladora Coca-Cola Perú
+            Catálogo Mayorista • Conteo Exclusivo en Paquetes
           </div>
           <h1 className="text-2xl font-bold text-[#0F172A] tracking-tight">
-            Gestión de Inventario y Stock
+            Gestión de Inventario y Productos
           </h1>
           <p className="text-xs text-[#64748B] mt-0.5">
-            Seguimiento de existencias en unidades físicas y paquetes completos equivalentes
+            Control de existencias de bebidas y productos en paquetes completos
           </p>
         </div>
 
@@ -198,6 +226,20 @@ export const InventoryPage = () => {
         </div>
       </div>
 
+      {/* Alertas globales de éxito o error */}
+      {exito && (
+        <div className="p-4 rounded-xl bg-green-50 border border-green-200 text-xs font-mono text-[#16A34A] flex items-center gap-2 shadow-xs">
+          <CheckCircle2 className="w-4 h-4" />
+          {exito}
+        </div>
+      )}
+      {error && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs font-mono text-[#DC2626] flex items-center gap-2 shadow-xs">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
+
       {/* Barra de Búsqueda y Pestañas de Categoría */}
       <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
@@ -208,7 +250,7 @@ export const InventoryPage = () => {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por nombre, SKU o etiqueta YOLO..."
+              placeholder="Buscar por nombre, SKU o etiqueta..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-xs text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
             />
           </div>
@@ -248,14 +290,12 @@ export const InventoryPage = () => {
         </div>
       </div>
 
-      {/* Tabla de Productos */}
+      {/* Tabla de Productos (100% en Paquetes) */}
       <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-xs font-mono text-[#64748B]">
             Cargando inventario...
           </div>
-        ) : error ? (
-          <div className="p-6 text-center text-sm text-[#DC2626]">{error}</div>
         ) : productosFiltrados.length === 0 ? (
           <div className="p-12 text-center text-sm text-[#64748B]">
             No se encontraron productos coincidentes con los filtros seleccionados.
@@ -267,36 +307,29 @@ export const InventoryPage = () => {
                 <tr>
                   <th className="py-3.5 px-4">SKU / Producto</th>
                   <th className="py-3.5 px-4">Categoría</th>
-                  <th className="py-3.5 px-4">Empaque (YOLO)</th>
-                  <th className="py-3.5 px-4 text-right">Stock Físico (Unidades)</th>
-                  <th className="py-3.5 px-4 text-right">Packs Equivalentes</th>
+                  <th className="py-3.5 px-4">Etiqueta Detección</th>
+                  <th className="py-3.5 px-4 text-center">Stock Actual</th>
                   <th className="py-3.5 px-4 text-center">Estado</th>
                   <th className="py-3.5 px-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E2E8F0]">
                 {productosFiltrados.map((prod) => {
-                  const stock = prod.stock_actual || 0;
-                  const unidadesPack = prod.unidades_por_paquete || 1;
-                  const packs = Math.floor(stock / unidadesPack);
-                  const sueltas = stock % unidadesPack;
+                  const stock = prod.stock_actual ?? 0;
 
-                  // Semáforo de stock
+                  // Semáforo de stock en paquetes
                   let badgeColor = 'bg-green-100 text-[#16A34A]';
                   let estadoTexto = 'Óptimo';
                   if (stock === 0) {
                     badgeColor = 'bg-red-100 text-[#DC2626]';
                     estadoTexto = 'Agotado';
-                  } else if (stock < 24) {
+                  } else if (stock < 10) {
                     badgeColor = 'bg-amber-100 text-[#D97706]';
-                    estadoTexto = 'Bajo';
+                    estadoTexto = 'Stock Bajo';
                   }
 
                   return (
-                    <tr
-                      key={prod.id}
-                      className="hover:bg-slate-50/70 transition-colors"
-                    >
+                    <tr key={prod.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-[#0F172A] text-sm">
                           {prod.nombre}
@@ -312,26 +345,12 @@ export const InventoryPage = () => {
 
                       <td className="py-3.5 px-4">
                         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#0284C7]/10 text-[#0284C7] font-mono text-[11px] font-bold">
-                          <span>x{unidadesPack} un/pack</span>
-                        </div>
-                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          tag: {prod.etiqueta_yolo}
+                          <span>{prod.etiqueta_yolo || 'estándar'}</span>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right font-mono font-bold text-sm text-[#0F172A]">
-                        {stock.toLocaleString()} un
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right font-mono text-xs">
-                        <span className="font-bold text-[#0284C7]">
-                          {packs} packs
-                        </span>
-                        {sueltas > 0 && (
-                          <span className="text-[#64748B] text-[11px] ml-1">
-                            +{sueltas} sueltas
-                          </span>
-                        )}
+                      <td className="py-3.5 px-4 text-center font-mono font-bold text-sm text-[#0F172A]">
+                        {stock.toLocaleString()} paquetes
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
@@ -343,14 +362,29 @@ export const InventoryPage = () => {
                       </td>
 
                       <td className="py-3.5 px-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleAbrirEditar(prod)}
-                          className="px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] hover:bg-slate-100 text-[#1E40AF] font-semibold text-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Ajustar
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleAbrirEditar(prod)}
+                            className="px-2.5 py-1.5 rounded-lg border border-[#E2E8F0] hover:bg-slate-100 text-[#1E40AF] font-semibold text-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
+                            title="Editar Producto"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span>Editar</span>
+                          </button>
+
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarProducto(prod)}
+                              className="px-2 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 text-[#DC2626] font-semibold text-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              title="Eliminar Producto"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Eliminar</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -375,7 +409,7 @@ export const InventoryPage = () => {
               <button
                 type="button"
                 onClick={() => setModalCrearAbierto(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -399,7 +433,7 @@ export const InventoryPage = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, nombre: e.target.value })
                   }
-                  placeholder="Ej: Inca Kola 500 ml (Pack x12)"
+                  placeholder="Ej: Inca Kola 500 ml"
                   className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-sm focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
                 />
               </div>
@@ -426,7 +460,7 @@ export const InventoryPage = () => {
 
                 <div>
                   <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    SKU
+                    SKU (Código)
                   </label>
                   <input
                     type="text"
@@ -443,26 +477,7 @@ export const InventoryPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    Unidades por Paquete
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={formData.unidades_por_paquete}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        unidades_por_paquete: e.target.value,
-                      })
-                    }
-                    className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    Stock Inicial (Unidades)
+                    Stock Inicial (Paquetes)
                   </label>
                   <input
                     type="number"
@@ -475,22 +490,22 @@ export const InventoryPage = () => {
                     className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                  Etiqueta de Detección YOLO
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.etiqueta_yolo}
-                  onChange={(e) =>
-                    setFormData({ ...formData, etiqueta_yolo: e.target.value })
-                  }
-                  placeholder="Ej: pack_incakola_500ml o bottle"
-                  className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
-                />
+                <div>
+                  <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
+                    Etiqueta de Detección
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.etiqueta_yolo}
+                    onChange={(e) =>
+                      setFormData({ ...formData, etiqueta_yolo: e.target.value })
+                    }
+                    placeholder="Ej: inca_kola o bottle"
+                    className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-2.5 pt-3 border-t border-[#E2E8F0]">
@@ -506,7 +521,7 @@ export const InventoryPage = () => {
                   disabled={guardando}
                   className="flex-1 py-2.5 rounded-lg bg-[#1E40AF] hover:bg-[#1D4ED8] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
                 >
-                  {guardando ? 'Guardando...' : 'Guardar Producto'}
+                  {guardando ? 'Guardando...' : 'Crear Producto'}
                 </button>
               </div>
             </form>
@@ -515,7 +530,7 @@ export const InventoryPage = () => {
       )}
 
       {/* =========================================================================
-          MODAL EDITAR / AJUSTAR STOCK
+          MODAL EDITAR / AJUSTAR STOCK (ADMIN / ALMACENERO)
           ========================================================================= */}
       {modalEditarAbierto && productoSeleccionado && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
@@ -523,12 +538,12 @@ export const InventoryPage = () => {
             <div className="flex items-center justify-between border-b border-[#E2E8F0] pb-3">
               <h3 className="font-bold text-base text-[#0F172A] flex items-center gap-2">
                 <Edit2 className="w-5 h-5 text-[#0284C7]" />
-                Ajustar Stock / Editar Producto
+                Editar Producto / Ajustar Stock
               </h3>
               <button
                 type="button"
                 onClick={() => setModalEditarAbierto(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -578,7 +593,7 @@ export const InventoryPage = () => {
 
                 <div>
                   <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    SKU
+                    SKU (Código)
                   </label>
                   <input
                     type="text"
@@ -591,56 +606,26 @@ export const InventoryPage = () => {
                 </div>
               </div>
 
-              {/* Ajuste manual de stock destacado */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 border border-[#1E40AF]/20 space-y-2">
-                <label className="block font-mono font-bold text-[#1E40AF] uppercase">
-                  Ajuste Directo de Stock Físico (Unidades)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  required
-                  value={formData.stock_actual}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stock_actual: e.target.value })
-                  }
-                  className="w-full p-2.5 rounded-lg border border-[#1E40AF]/30 bg-white font-mono text-base font-bold text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
-                />
-                <p className="text-[11px] text-[#64748B]">
-                  Equivalente a:{' '}
-                  <strong className="text-[#0284C7] font-mono">
-                    {Math.floor(
-                      (parseInt(formData.stock_actual, 10) || 0) /
-                        (parseInt(formData.unidades_por_paquete, 10) || 1)
-                    )}{' '}
-                    paquetes
-                  </strong>
-                </p>
-              </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    Unidades por Paquete
+                    Stock Actual (Paquetes)
                   </label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     required
-                    value={formData.unidades_por_paquete}
+                    value={formData.stock_actual}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        unidades_por_paquete: e.target.value,
-                      })
+                      setFormData({ ...formData, stock_actual: e.target.value })
                     }
-                    className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
+                    className="w-full p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] font-mono text-sm font-bold text-[#1E40AF] focus:outline-none focus:ring-2 focus:ring-[#1E40AF]"
                   />
                 </div>
 
                 <div>
                   <label className="block font-mono font-semibold text-[#0F172A] uppercase mb-1">
-                    Etiqueta YOLO
+                    Etiqueta de Detección
                   </label>
                   <input
                     type="text"
@@ -665,7 +650,7 @@ export const InventoryPage = () => {
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="flex-1 py-2.5 rounded-lg bg-[#0284C7] hover:bg-sky-700 text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-lg bg-[#0284C7] hover:bg-[#0369A1] text-white text-xs font-bold shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {guardando ? 'Actualizando...' : 'Guardar Cambios'}
                 </button>

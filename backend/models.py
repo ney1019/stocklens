@@ -21,6 +21,7 @@ class Usuario(Base):
 
     rol = relationship("Rol", back_populates="usuarios")
     escaneos = relationship("Escaneo", back_populates="usuario")
+    salidas = relationship("Salida", back_populates="usuario")
 
 class Categoria(Base):
     __tablename__ = "categorias"
@@ -43,6 +44,7 @@ class Producto(Base):
 
     categoria = relationship("Categoria", back_populates="productos")
     detalles = relationship("DetalleEscaneo", back_populates="producto")
+    detalles_salida = relationship("DetalleSalida", back_populates="producto")
 
 class Escaneo(Base):
     __tablename__ = "escaneos"
@@ -50,6 +52,7 @@ class Escaneo(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     fecha = Column(TIMESTAMP, server_default=func.now())
     imagen_path = Column(String(255), nullable=False)
+    imagen_lateral_path = Column(String(255), nullable=True)
     estado = Column(
         Enum("PENDIENTE", "CONFIRMADO", "CANCELADO", name="estado_escaneo_enum"),
         default="PENDIENTE",
@@ -68,7 +71,41 @@ class DetalleEscaneo(Base):
     id = Column(Integer, primary_key=True, index=True)
     escaneo_id = Column(Integer, ForeignKey("escaneos.id"), nullable=False)
     producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    ancho = Column(Integer, nullable=False, default=1)
+    fondo = Column(Integer, nullable=False, default=1)
+    alto = Column(Integer, nullable=False, default=1)
     cantidad_detectada = Column(Integer, nullable=False)
 
     escaneo = relationship("Escaneo", back_populates="detalles")
     producto = relationship("Producto", back_populates="detalles")
+
+class Salida(Base):
+    __tablename__ = "salidas"
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    numero_documento = Column(String(100), nullable=True)
+    tipo_documento = Column(
+        Enum("BOLETA", "FACTURA", "GUIA", name="tipo_documento_enum"),
+        default="BOLETA",
+        nullable=False
+    )
+    archivo_path = Column(String(255), nullable=True)
+    fecha = Column(TIMESTAMP, server_default=func.now())
+    estado = Column(
+        Enum("PENDIENTE", "CONFIRMADO", "CANCELADO", name="estado_salida_enum"),
+        default="CONFIRMADO",
+        nullable=False
+    )
+
+    usuario = relationship("Usuario", back_populates="salidas")
+    detalles = relationship("DetalleSalida", back_populates="salida", cascade="all, delete-orphan")
+
+class DetalleSalida(Base):
+    __tablename__ = "detalle_salida"
+    id = Column(Integer, primary_key=True, index=True)
+    salida_id = Column(Integer, ForeignKey("salidas.id"), nullable=False)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    cantidad_paquetes = Column(Integer, nullable=False)
+
+    salida = relationship("Salida", back_populates="detalles")
+    producto = relationship("Producto", back_populates="detalles_salida")

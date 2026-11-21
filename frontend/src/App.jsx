@@ -4,6 +4,7 @@ import { AuthProvider, ProtectedRoute, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
 import { ScannerPage } from './pages/ScannerPage';
+import { SalidasPage } from './pages/SalidasPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/InventoryPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -12,7 +13,7 @@ import { UsersPage } from './pages/UsersPage';
 /**
  * Redirige la raíz "/" según el rol del usuario autenticado:
  * - Administrador -> /dashboard
- * - Almacenero / Operador -> /escaner
+ * - Almacenero -> /escaner
  */
 const HomeRedirect = () => {
   const { user, isAdmin } = useAuth();
@@ -52,19 +53,23 @@ function App() {
               }
             />
 
-            {/* 2. Escáner IA con YOLOv8 y HITL (Operación de Almacén) */}
+            {/* 2. Recepción y Escaneo de Pallets */}
             <Route path="escaner" element={<ScannerPage />} />
             <Route path="scan" element={<Navigate to="/escaner" replace />} />
 
-            {/* 3. Inventario y Catálogo de Bebidas */}
+            {/* 3. Salidas y Despachos por Boleta o Factura PDF */}
+            <Route path="salidas" element={<SalidasPage />} />
+            <Route path="despachos" element={<Navigate to="/salidas" replace />} />
+
+            {/* 4. Inventario y Catálogo en Paquetes */}
             <Route path="inventario" element={<InventoryPage />} />
             <Route path="productos" element={<Navigate to="/inventario" replace />} />
 
-            {/* 4. Historial de Escaneos y Auditoría */}
+            {/* 5. Historial de Operaciones */}
             <Route path="historial" element={<HistoryPage />} />
             <Route path="escaneos" element={<Navigate to="/historial" replace />} />
 
-            {/* 5. Gestión de Usuarios y Roles (Exclusivo Administrador) */}
+            {/* 6. Gestión de Usuarios y Roles (Exclusivo Administrador) */}
             <Route
               path="usuarios"
               element={
