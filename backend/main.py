@@ -302,16 +302,20 @@ def format_usuario(u: models.Usuario) -> dict:
 
 
 # ==============================================================================
-# ENDPOINTS GENERALES Y SALUD
+# ENDPOINTS GENERALES Y SALUD (DESPERTADOR DEL SERVIDOR)
 # ==============================================================================
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {
         "message": "Bienvenido a la API de StockLens (Mayorista / Paquetes)",
         "version": "2.1.0",
         "status": "online"
     }
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health_check():
+    return {"status": "ok"}
 
 
 # ==============================================================================
