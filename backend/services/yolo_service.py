@@ -28,14 +28,21 @@ def get_model() -> YOLO:
     return _model
 
 def _cargar_imagen(image_input: Union[str, bytes, Image.Image]) -> Image.Image:
-    """Convierte el input a un objeto PIL.Image seguro."""
+    """Convierte el input a un objeto PIL.Image seguro y redimensiona si es muy pesado."""
     if isinstance(image_input, Image.Image):
-        return image_input
-    if isinstance(image_input, bytes):
-        return Image.open(io.BytesIO(image_input))
-    if isinstance(image_input, str):
-        return Image.open(image_input)
-    raise ValueError("Formato de imagen no soportado")
+        img = image_input
+    elif isinstance(image_input, bytes):
+        img = Image.open(io.BytesIO(image_input))
+    elif isinstance(image_input, str):
+        img = Image.open(image_input)
+    else:
+        raise ValueError("Formato de imagen no soportado")
+
+    # Convertir a RGB por si viene en RGBA/PNG y limitar tamaño máximo a 1280px
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    img.thumbnail((1280, 1280))
+    return img
 
 def detectar_cajas_por_clase(image_input: Union[str, bytes, Image.Image]) -> Dict[str, List[dict]]:
     """
