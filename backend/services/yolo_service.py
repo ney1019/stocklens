@@ -51,7 +51,8 @@ def detectar_cajas_por_clase(image_input: Union[str, bytes, Image.Image]) -> Dic
     """
     model = get_model()
     imagen = _cargar_imagen(image_input)
-    resultados = model(imagen)
+    resultados = model(imagen, conf=0.12, iou=0.45)
+
 
     cajas_por_clase: Dict[str, List[dict]] = {}
 
