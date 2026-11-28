@@ -652,6 +652,21 @@ def eliminar_producto(id: int, db: Session = Depends(get_db)):
 # ENDPOINTS DE ESCANEO VOLUMÉTRICO CON YOLO (FRONTAL + LATERAL)
 # ==============================================================================
 
+# Mapeo de etiquetas del modelo YOLO (best.pt / COCO) hacia etiqueta_yolo en la tabla productos
+YOLO_TAG_MAP = {
+    "coca_cola_3lt": "pack_cocacola_3l",
+    "coca_cola_1lt_cero": "pack_cocacola_500ml",
+    "coca_cola_600ml": "pack_cocacola_500ml",
+    "inca_cola_3lt": "pack_incakola_3l",
+    "inca_cola_2_25lt_cero": "pack_incakola_3l",
+    "inca_kola_600_ml": "pack_incakola_500ml",
+    "powerade_600ml": "pack_powerade_500ml",
+    "san_luis_3lt": "pack_sanluis_2500ml",
+    "san_luis_manzana_1_5lt": "pack_sanluis_2500ml",
+    "san_luis_sport_1lt": "pack_sanluis_625ml",
+    "bottle": "bottle",
+}
+
 @app.post("/api/escanear", summary="Escaneo volumétrico de paquetes con YOLO (Frontal + Lateral)")
 @app.post("/api/scan", summary="Alias de escaneo volumétrico")
 async def procesar_escaneo(
@@ -701,7 +716,19 @@ async def procesar_escaneo(
     detalles_respuesta = []
 
     for etiqueta, dims in resultados_volumetricos.items():
+        # 1. Coincidencia directa
         producto = db.query(models.Producto).filter(models.Producto.etiqueta_yolo == etiqueta).first()
+        # 2. Mapeo por alias de best.pt
+        if not producto and etiqueta in YOLO_TAG_MAP:
+            producto = db.query(models.Producto).filter(models.Producto.etiqueta_yolo == YOLO_TAG_MAP[etiqueta]).first()
+        # 3. Coincidencia por palabra clave del nombre
+        if not producto:
+            token = etiqueta.split("_")[0].lower()
+            producto = db.query(models.Producto).filter(models.Producto.nombre.ilike(f"%{token}%")).first()
+        # 4. Fallback a producto genérico
+        if not producto:
+            producto = db.query(models.Producto).filter(models.Producto.etiqueta_yolo == "bottle").first() or db.query(models.Producto).first()
+
         if producto:
             ancho = dims["ancho"]
             fondo = dims["fondo"]
