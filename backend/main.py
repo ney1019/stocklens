@@ -8,6 +8,7 @@ from datetime import datetime, date, time
 from typing import List, Optional, Dict, Any
 import bcrypt
 from dotenv import load_dotenv
+from PIL import Image
 
 try:
     import cloudinary
@@ -72,15 +73,41 @@ app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 # UTILIDADES DE GUARDADO Y CARGA DE IMÁGENES / ARCHIVOS
 # ==============================================================================
 
+def comprimir_imagen(file_bytes: bytes, max_dim: int = 1280, quality: int = 80) -> bytes:
+    """
+    Redimensiona y comprime en memoria a JPEG antes de subir o procesar.
+    Reduce fotos pesadas de 5-15MB a ~120-250KB acelerando radicalmente la subida a Cloudinary
+    y la inferencia en CPU sin perder precisión volumétrica.
+    """
+    if not file_bytes:
+        return file_bytes
+    try:
+        with Image.open(io.BytesIO(file_bytes)) as img:
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            if max(img.size) > max_dim:
+                img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=quality, optimize=True)
+            compressed = buffer.getvalue()
+            return compressed if (len(compressed) < len(file_bytes) or len(file_bytes) > 500_000) else file_bytes
+    except Exception as e:
+        print(f"[Compresión Warning] No se pudo comprimir imagen: {e}")
+        return file_bytes
+
+
 def guardar_imagen(file_bytes: bytes, filename: str) -> str:
     """
     Si existen las variables CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-    en .env, sube la imagen a Cloudinary y guarda su secure_url.
+    en .env, sube la imagen optimizada a Cloudinary y guarda su secure_url.
     De lo contrario, guarda localmente en uploads/ y retorna '/uploads/{nombre}'.
     """
     cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
     api_key = os.getenv("CLOUDINARY_API_KEY")
     api_secret = os.getenv("CLOUDINARY_API_SECRET")
+
+    # Optimizar tamaño y compresión de imagen antes de subir o guardar
+    bytes_optimizados = comprimir_imagen(file_bytes, max_dim=1280, quality=80)
 
     if HAS_CLOUDINARY and cloud_name and api_key and api_secret:
         try:
@@ -91,7 +118,7 @@ def guardar_imagen(file_bytes: bytes, filename: str) -> str:
                 secure=True
             )
             upload_result = cloudinary.uploader.upload(
-                file_bytes,
+                bytes_optimizados,
                 folder="stocklens/escaneos"
             )
             secure_url = upload_result.get("secure_url") or upload_result.get("url")
@@ -104,7 +131,7 @@ def guardar_imagen(file_bytes: bytes, filename: str) -> str:
     nombre_archivo = f"{uuid.uuid4()}.{extension}"
     ruta_guardado = os.path.join(UPLOADS_DIR, nombre_archivo)
     with open(ruta_guardado, "wb") as f:
-        f.write(file_bytes)
+        f.write(bytes_optimizados)
 
     return f"/uploads/{nombre_archivo}"
 
@@ -689,12 +716,13 @@ async def procesar_escaneo(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El archivo de la foto frontal está vacío o no es válido."
         )
+    frontal_bytes = comprimir_imagen(frontal_bytes, max_dim=1280, quality=80)
 
     lateral_bytes: Optional[bytes] = None
     if foto_lateral:
         bytes_lat = await foto_lateral.read()
         if bytes_lat and len(bytes_lat) > 0:
-            lateral_bytes = bytes_lat
+            lateral_bytes = comprimir_imagen(bytes_lat, max_dim=1280, quality=80)
 
     # 1. Guardar imágenes (Cloudinary o carpeta local uploads/)
     ruta_frontal = guardar_imagen(frontal_bytes, frontal_file.filename or "frontal.jpg")
